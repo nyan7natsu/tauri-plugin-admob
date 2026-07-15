@@ -1,428 +1,214 @@
 # Tauri Plugin Google AdMob
 
-A comprehensive Tauri plugin for integrating Google AdMob advertisements into your mobile applications. This plugin supports all major ad formats including banner, interstitial, rewarded, rewarded interstitial, and app open ads.
+Google AdMob を Tauri で使用するためのプラグイン．
+スマートフォンアプリケーション向けです．
 
-[![Crate](https://img.shields.io/crates/v/tauri-plugin-google-admob.svg)](https://crates.io/crates/tauri-plugin-google-admob)
-[![License](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-blue.svg)](https://github.com/Atlas-OS/tauri-plugin-google-admob)
+[VMASPAD/tauri-plugin-google-admob](https://github.com/VMASPAD/tauri-plugin-google-admob) のForkで，**上流に存在しなかったiOS実装を追加**しています．
 
-## Features
+## 対応状況
 
-- 🎯 **Banner Ads**: Display banner advertisements with customizable positioning
-- 📱 **Interstitial Ads**: Full-screen ads that appear at natural app transition points
-- 🎁 **Rewarded Ads**: Users earn rewards for viewing video advertisements
-- 🏆 **Rewarded Interstitial Ads**: Full-screen ads with reward mechanics
-- 🚀 **App Open Ads**: Monetize app launch and resume events
-- 🔄 **Event System**: Listen to ad lifecycle events (loaded, displayed, clicked, etc.)
-- 🎨 **Customizable**: Configure ad sizes, positions, and behavior
-- 🛡️ **Type Safe**: Full TypeScript support with comprehensive type definitions
+| プラットフォーム | 対応 |
+|---|---|
+| Android | ✅(上流由来 + 拡張) |
+| iOS | ✅(本Forkで実装) |
+| デスクトップ | ❌(スタブのみ) |
 
-## Installation
+対応広告フォーマット: バナー / インタースティシャル / リワード / リワードインタースティシャル / アプリオープン + 広告ライフサイクルイベント(`adEvent`)
 
-Add the plugin to your Tauri application:
+> [!NOTE]
+> crates.io / npm には公開していないため，インストールはgit経由で行います．
 
-### Rust (Cargo.toml)
+## インストール
+
+### 1. Rust側
+
+`src-tauri/Cargo.toml` に追加:
+
 ```toml
 [dependencies]
-tauri-plugin-google-admob = "1.0.0"
+tauri-plugin-google-admob = { git = "https://github.com/nyan7natsu/tauri-plugin-admob" }
 ```
 
-### JavaScript/TypeScript
-```bash
-npm install tauri-plugin-google-admob
-# or
-yarn add tauri-plugin-google-admob
-# or
-pnpm add tauri-plugin-google-admob
+またはコマンドで:
+
+```sh
+cargo add tauri-plugin-google-admob --git https://github.com/nyan7natsu/tauri-plugin-admob
 ```
 
-## Setup
-
-### 1. Register the Plugin
-
-In your Tauri application's `src-tauri/src/main.rs`:
+`src-tauri/src/lib.rs` でプラグインを登録:
 
 ```rust
-use tauri_plugin_google_admob::GoogleAdmobPlugin;
-
-fn main() {
-    tauri::Builder::default()
-        .plugin(GoogleAdmobPlugin::init())
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
-}
+tauri::Builder::default()
+    .plugin(tauri_plugin_google_admob::init())
+    // ...
 ```
 
-### 2. Add Permissions
-
-Add the required permissions to your `src-tauri/capabilities/default.json`:
+`src-tauri/capabilities/default.json` に権限を追加:
 
 ```json
 {
-  "identifier": "default",
-  "windows": ["main"],
   "permissions": [
-    "core:default",
-    "google-admob:allow-initialize",
-    "google-admob:allow-show-banner",
-    "google-admob:allow-hide-banner",
-    "google-admob:allow-prepare-interstitial",
-    "google-admob:allow-show-interstitial",
-    "google-admob:allow-prepare-rewarded",
-    "google-admob:allow-show-rewarded",
-    "google-admob:allow-prepare-rewarded-interstitial",
-    "google-admob:allow-show-rewarded-interstitial",
-    "google-admob:allow-prepare-app-open",
-    "google-admob:allow-show-app-open"
+    "google-admob:default"
   ]
 }
 ```
 
-### 3. Android Configuration
+### 2. JavaScript側
 
-Add the Google Mobile Ads SDK to your Android configuration:
+pnpm の場合，先に `pnpm-workspace.yaml` でビルドスクリプトを許可してからインストール
+(git依存はインストール時に `prepare` スクリプトでTSをビルドするため):
 
-**android/build.gradle.kts:**
-```kotlin
-    composeOptions {
-        kotlinCompilerExtensionVersion = "2.1.0" 
-    }
-    kotlinOptions {
-        jvmTarget = "1.8"
-    }
-dependencies {
-    implementation("com.google.android.gms:play-services-ads:24.9.0")
-}
+```yaml
+# pnpm-workspace.yaml
+allowBuilds:
+  tauri-plugin-google-admob-api: true
 ```
 
-**android/src/main/AndroidManifest.xml:**
+```sh
+pnpm add github:nyan7natsu/tauri-plugin-admob
+```
+
+npm / yarn の場合は許可設定は不要です:
+
+```sh
+npm install github:nyan7natsu/tauri-plugin-admob
+```
+
+依存を増やしたくない場合は，[`guest-js/index.ts`](guest-js/index.ts) を直接アプリにコピーしても動きます(依存は `@tauri-apps/api` のみ)．
+
+### 3. Android セットアップ
+
+`src-tauri/gen/android/app/src/main/AndroidManifest.xml` の `<application>` 内にAdMobアプリIDを追加:
+
 ```xml
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Add these permissions -->
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    
-    <application>
-        <!-- Add your AdMob App ID -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
-    </application>
-</manifest>
+<meta-data
+    android:name="com.google.android.gms.ads.APPLICATION_ID"
+    android:value="ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy"/>
 ```
 
-## Usage
+テスト用アプリID: `ca-app-pub-3940256099942544~3347511713`
 
-### Initialize AdMob
+### 4. iOS セットアップ
 
-```typescript
-import { initialize } from 'tauri-plugin-google-admob';
+最低iOSバージョンを15.0にすることを推奨(`tauri.conf.json`):
 
-// Initialize with your AdMob configuration
-await initialize({
-  app_id: 'ca-app-pub-3940256099942544~3347511713', // Your AdMob App ID
-  test_device_ids: ['DEVICE_ID_1', 'DEVICE_ID_2'], // Optional test devices
-  is_debug: true, // Enable debug mode for development
-  tag_for_child_directed_treatment: null,
-  tag_for_under_age_of_consent: null
-});
-```
-
-### Banner Ads
-
-```typescript
-import { showBanner, hideBanner } from 'tauri-plugin-google-admob';
-
-// Show a banner ad
-await showBanner({
-  ad_id: 'ca-app-pub-3940256099942544/6300978111', // Test banner ad unit ID
-  position: 'BOTTOM', // 'TOP' | 'BOTTOM'
-  size: 'BANNER' // 'BANNER' | 'LARGE_BANNER' | 'MEDIUM_RECTANGLE' | 'FULL_BANNER' | 'LEADERBOARD' | 'SMART_BANNER'
-});
-
-// Hide the banner
-await hideBanner();
-```
-
-### Interstitial Ads
-
-```typescript
-import { prepareInterstitial, showInterstitial } from 'tauri-plugin-google-admob';
-
-// Prepare the interstitial ad
-await prepareInterstitial({
-  ad_id: 'ca-app-pub-3940256099942544/1033173712' // Test interstitial ad unit ID
-});
-
-// Show when ready
-await showInterstitial();
-```
-
-### Rewarded Ads
-
-```typescript
-import { prepareRewarded, showRewarded } from 'tauri-plugin-google-admob';
-
-// Prepare the rewarded ad
-await prepareRewarded({
-  ad_id: 'ca-app-pub-3940256099942544/5224354917' // Test rewarded ad unit ID
-});
-
-// Show and handle rewards
-await showRewarded();
-```
-
-### Rewarded Interstitial Ads
-
-```typescript
-import { prepareRewardedInterstitial, showRewardedInterstitial } from 'tauri-plugin-google-admob';
-
-// Prepare the rewarded interstitial ad
-await prepareRewardedInterstitial({
-  ad_id: 'ca-app-pub-3940256099942544/5354046379' // Test rewarded interstitial ad unit ID
-});
-
-// Show when ready
-await showRewardedInterstitial();
-```
-
-### App Open Ads
-
-```typescript
-import { prepareAppOpen, showAppOpen } from 'tauri-plugin-google-admob';
-
-// Prepare the app open ad
-await prepareAppOpen({
-  ad_id: 'ca-app-pub-3940256099942544/9257395921', // Test app open ad unit ID
-  orientation: 'PORTRAIT' // 'PORTRAIT' | 'LANDSCAPE'
-});
-
-// Show when app becomes active
-await showAppOpen();
-```
-
-### Listening to Ad Events
-
-```typescript
-import { listen } from '@tauri-apps/api/event';
-
-// Listen to ad events
-await listen('admob://banner_loaded', (event) => {
-  console.log('Banner ad loaded:', event.payload);
-});
-
-await listen('admob://banner_failed_to_load', (event) => {
-  console.log('Banner ad failed to load:', event.payload);
-});
-
-await listen('admob://interstitial_loaded', (event) => {
-  console.log('Interstitial ad loaded');
-});
-
-await listen('admob://rewarded_earned_reward', (event) => {
-  console.log('User earned reward:', event.payload);
-});
-```
-
-## API Reference
-
-### Types
-
-```typescript
-// Configuration
-export interface InitializeRequest {
-  app_id: string;
-  test_device_ids?: string[];
-  is_debug?: boolean;
-  tag_for_child_directed_treatment?: boolean | null;
-  tag_for_under_age_of_consent?: boolean | null;
+```json
+{
+  "bundle": {
+    "iOS": { "minimumSystemVersion": "15.0" }
+  }
 }
-
-// Banner Ad Options
-export interface BannerAdOptions {
-  ad_id: string;
-  position: AdPosition;
-  size: BannerAdSize;
-}
-
-export type AdPosition = 'TOP' | 'BOTTOM';
-export type BannerAdSize = 'BANNER' | 'LARGE_BANNER' | 'MEDIUM_RECTANGLE' | 'FULL_BANNER' | 'LEADERBOARD' | 'SMART_BANNER';
-
-// Other Ad Options
-export interface InterstitialAdOptions {
-  ad_id: string;
-}
-
-export interface RewardedAdOptions {
-  ad_id: string;
-}
-
-export interface RewardedInterstitialAdOptions {
-  ad_id: string;
-}
-
-export interface AppOpenAdOptions {
-  ad_id: string;
-  orientation: AdOrientation;
-}
-
-export type AdOrientation = 'PORTRAIT' | 'LANDSCAPE';
 ```
 
-### Commands
-
-| Command | Parameters | Description |
-|---------|------------|-------------|
-| `initialize` | `InitializeRequest` | Initialize AdMob with your app configuration |
-| `showBanner` | `BannerAdOptions` | Display a banner advertisement |
-| `hideBanner` | - | Hide the currently displayed banner |
-| `prepareInterstitial` | `InterstitialAdOptions` | Load an interstitial ad for later display |
-| `showInterstitial` | - | Show the prepared interstitial ad |
-| `prepareRewarded` | `RewardedAdOptions` | Load a rewarded ad for later display |
-| `showRewarded` | - | Show the prepared rewarded ad |
-| `prepareRewardedInterstitial` | `RewardedInterstitialAdOptions` | Load a rewarded interstitial ad |
-| `showRewardedInterstitial` | - | Show the prepared rewarded interstitial ad |
-| `prepareAppOpen` | `AppOpenAdOptions` | Load an app open ad for later display |
-| `showAppOpen` | - | Show the prepared app open ad |
-
-### Events
-
-The plugin emits various events during the ad lifecycle:
-
-| Event | Description |
-|-------|-------------|
-| `admob://banner_loaded` | Banner ad successfully loaded |
-| `admob://banner_failed_to_load` | Banner ad failed to load |
-| `admob://banner_opened` | Banner ad was clicked/opened |
-| `admob://banner_closed` | Banner ad was closed |
-| `admob://interstitial_loaded` | Interstitial ad successfully loaded |
-| `admob://interstitial_failed_to_load` | Interstitial ad failed to load |
-| `admob://interstitial_showed` | Interstitial ad was displayed |
-| `admob://interstitial_failed_to_show` | Interstitial ad failed to show |
-| `admob://interstitial_dismissed` | Interstitial ad was dismissed |
-| `admob://rewarded_loaded` | Rewarded ad successfully loaded |
-| `admob://rewarded_failed_to_load` | Rewarded ad failed to load |
-| `admob://rewarded_showed` | Rewarded ad was displayed |
-| `admob://rewarded_failed_to_show` | Rewarded ad failed to show |
-| `admob://rewarded_dismissed` | Rewarded ad was dismissed |
-| `admob://rewarded_earned_reward` | User earned a reward |
-
-## Test Ad Unit IDs
-
-For testing purposes, use these Google-provided test ad unit IDs:
-
-| Ad Format | Test Ad Unit ID |
-|-----------|----------------|
-| Banner | `ca-app-pub-3940256099942544/6300978111` |
-| Interstitial | `ca-app-pub-3940256099942544/1033173712` |
-| Rewarded | `ca-app-pub-3940256099942544/5224354917` |
-| Rewarded Interstitial | `ca-app-pub-3940256099942544/5354046379` |
-| App Open | `ca-app-pub-3940256099942544/9257395921` |
-
-## Example Application
-
-Check out the complete example in the [`examples/tauri-app`](examples/tauri-app) directory for a full implementation showing all ad types and event handling.
-
-## Troubleshooting
-
-### Common Issues
-
-**1. Plugin commands not found**
-- Ensure you've added all required permissions to your capabilities file
-- Verify the plugin is registered in your Rust main function
-
-**2. Ads not loading**
-- Check your internet connection
-- Verify your AdMob App ID and ad unit IDs are correct
-- Make sure you've added the required permissions to AndroidManifest.xml
-- For production, ensure your app is approved by AdMob
-
-**3. Android build issues**
-- Ensure you have the correct Google Mobile Ads SDK version
-- Check that your Android API level is compatible (minimum API 19)
-
-**4. TypeScript errors**
-- Make sure you've installed the plugin's npm package
-- Import types from 'tauri-plugin-google-admob'
-
-### Debug Mode
-
-Enable debug mode during development to get detailed logging:
-
-```typescript
-await initialize({
-  app_id: 'your-app-id',
-  is_debug: true // Enable debug logging
-});
-```
-
-## Contributing
-
-Contributions are welcome! Please read our [contributing guidelines](CONTRIBUTING.md) before submitting pull requests.
-
-## License
-
-This project is licensed under either of
-
-- Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-- MIT license ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
-
-at your option.
-
-## Acknowledgments
-
-- [Google Mobile Ads SDK](https://developers.google.com/admob/android/quick-start)
-- [Tauri](https://tauri.app/) - Build smaller, faster, and more secure desktop applications
-
----
-
-## iOS Support
-
-This fork adds the iOS implementation that upstream lacks:
-
-- `ios/Package.swift` – SwiftPM package depending on Google Mobile Ads SDK v12
-- `ios/Sources/AdmobPlugin.swift` – same command surface as the Android plugin
-  (initialize, banner, interstitial, rewarded, rewarded interstitial, app open,
-  plus the `adEvent` plugin event)
-- `build.rs` – custom `swift build --triple <ios-triple>` invocation instead of
-  `.ios_path()`. The stock tauri-plugin/swift-rs pipeline builds Swift packages
-  with a macOS build plan, which cannot resolve binary xcframework dependencies
-  (GoogleMobileAds) and fails with "no such module".
-
-### App setup (iOS)
-
-The GMA SDK ships as static xcframeworks which SwiftPM extracts into
-`ios/.build/artifacts/` during the Rust build. Your app's Xcode project
-(`src-tauri/gen/apple/project.yml`) needs to reference them for the final link:
+`src-tauri/gen/apple/project.yml` のアプリターゲットに以下を追加
+(`<plugin>` はこのプラグインの場所．git依存なら `$HOME/.cargo/git/checkouts/...` になるため，
+パスが安定するパスローカル依存やサブモジュール運用を推奨):
 
 ```yaml
 targets:
-  <your-app>_iOS:
+  <アプリ名>_iOS:
+    info:
+      properties:
+        GADApplicationIdentifier: ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy  # AdMobアプリID
+        SKAdNetworkItems:
+          - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
     settings:
       base:
-        # Adjust the relative path to wherever this plugin lives
         FRAMEWORK_SEARCH_PATHS[sdk=iphoneos*]: $(inherited) <plugin>/ios/.build/artifacts/swift-package-manager-google-mobile-ads/GoogleMobileAds/GoogleMobileAds.xcframework/ios-arm64 <plugin>/ios/.build/artifacts/swift-package-manager-google-user-messaging-platform/UserMessagingPlatform/UserMessagingPlatform.xcframework/ios-arm64
         FRAMEWORK_SEARCH_PATHS[sdk=iphonesimulator*]: $(inherited) <plugin>/ios/.build/artifacts/swift-package-manager-google-mobile-ads/GoogleMobileAds/GoogleMobileAds.xcframework/ios-arm64_x86_64-simulator <plugin>/ios/.build/artifacts/swift-package-manager-google-user-messaging-platform/UserMessagingPlatform/UserMessagingPlatform.xcframework/ios-arm64_x86_64-simulator
         OTHER_LDFLAGS: $(inherited) -framework GoogleMobileAds -framework UserMessagingPlatform
-        # Xcode 16+ debug-dylib splitting breaks Swift symbolic references from
-        # the statically linked plugin code on physical devices
         ENABLE_DEBUG_DYLIB: false
 ```
 
-Then run `xcodegen generate` inside `gen/apple`.
+変更後に `gen/apple` で `xcodegen generate` を実行してください．
 
-Info.plist requirements (via `project.yml` → `info.properties`):
+テスト用アプリID(iOS): `ca-app-pub-3940256099942544~1458002511`
 
-```yaml
-GADApplicationIdentifier: ca-app-pub-xxxxxxxxxxxxxxxx~yyyyyyyyyy  # your AdMob app ID
-SKAdNetworkItems:
-  - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
+> [!IMPORTANT]
+> - `GADApplicationIdentifier` がないとSDKの初期化時にクラッシュします
+> - `ENABLE_DEBUG_DYLIB: false` は必須です．Xcode 16以降のデバッグdylib分離が有効だと，
+>   静的リンクされたSwiftコードのシンボリック参照解決が実機で失敗し，起動直後にフリーズ→abortします
+>   (シミュレータでは発症しません)
+
+## 使い方
+
+```ts
+import {
+  initialize,
+  showBanner,
+  hideBanner,
+  prepareRewarded,
+  showRewarded,
+  onAdEvent,
+} from "tauri-plugin-google-admob-api";
+
+// SDK初期化(最初に1回)
+await initialize({});
+
+// 広告イベントの購読
+await onAdEvent((ev) => {
+  console.log(ev.adType, ev.event, ev.error, ev.reward);
+});
+
+// バナー表示(位置: top/bottom + 画面端からのオフセット)
+const { height } = await showBanner({
+  adUnitId: "ca-app-pub-3940256099942544/2934735716", // iOSテスト用バナーID
+  position: "bottom",
+  adSize: "ADAPTIVE",
+  offset: 0,
+});
+// ネイティブバナーはWebViewの上に重なるため，返ってきた height(pt/dp)ぶん
+// コンテンツにpaddingを与えると被りを回避できます
+document.documentElement.style.setProperty("--ad-pad-bottom", `${height}px`);
+
+await hideBanner();
+
+// リワード広告(prepare → show の2段階)
+const { loaded } = await prepareRewarded({
+  adUnitId: "ca-app-pub-3940256099942544/1712485313", // iOSテスト用リワードID
+});
+if (loaded) {
+  const result = await showRewarded();
+  if (result.reward) {
+    console.log(`報酬獲得: ${result.reward.amount} ${result.reward.rewardType}`);
+  }
+}
 ```
 
-Recommended minimum iOS version: 15.0 (`bundle > iOS > minimumSystemVersion`
-in `tauri.conf.json`).
+インタースティシャル / リワードインタースティシャル / アプリオープンも同じ
+`prepareXxx()` → `showXxx()` の形です．
 
-### Behavioral difference vs Android
+### テスト広告ユニットID
 
-`show_rewarded` / `show_rewarded_interstitial` resolve when the ad is
-**dismissed** (with `reward` present only if it was earned), instead of only
-resolving when a reward is earned.
+開発中は必ず[Google公式のテスト用ID](https://developers.google.com/admob/ios/test-ads)を使用してください．
+
+| フォーマット | Android | iOS |
+|---|---|---|
+| バナー | `ca-app-pub-3940256099942544/9214589741` | `ca-app-pub-3940256099942544/2934735716` |
+| インタースティシャル | `ca-app-pub-3940256099942544/1033173712` | `ca-app-pub-3940256099942544/4411468910` |
+| リワード | `ca-app-pub-3940256099942544/5224354917` | `ca-app-pub-3940256099942544/1712485313` |
+| リワードインタースティシャル | `ca-app-pub-3940256099942544/5354046379` | `ca-app-pub-3940256099942544/6978759866` |
+| アプリオープン | `ca-app-pub-3940256099942544/9257395921` | `ca-app-pub-3940256099942544/5575463023` |
+
+### AndroidとiOSの挙動差
+
+`showRewarded()` / `showRewardedInterstitial()` の resolve タイミングが異なります:
+
+- **iOS**: 広告が**閉じられた時点**で resolve．報酬未獲得なら `reward` は `undefined`
+- **Android**(上流実装): 報酬獲得時のみ resolve
+
+## iOS実装に関する技術メモ
+
+TauriのプラグインSwiftパッケージは通常 `tauri-plugin` の `.ios_path()`(内部はswift-rs)で
+ビルドされますが，swift-rsは**macOSビルドプラン**でSwiftパッケージをビルドするため，
+Google Mobile Ads SDK のような**バイナリxcframework依存のiOSスライスを解決できず**
+`no such module 'GoogleMobileAds'` で失敗します．
+
+そのため本Forkの `build.rs` は `swift build --triple <iosトリプル>` を直接実行し，
+生成された静的ライブラリとxcframeworkスライスへのリンクフラグをcargoに渡しています．
+xcframeworkはSwiftPMが `ios/.build/artifacts/` に展開するので，
+アプリ側の `FRAMEWORK_SEARCH_PATHS` でそこを参照します(上記セットアップ参照)．
+
+## ライセンス
+
+MIT OR Apache-2.0(上流と同じ)
