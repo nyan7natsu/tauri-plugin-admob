@@ -1,15 +1,15 @@
 [package]
 name = "tauri-plugin-google-admob"
-version = "0.1.1"
-authors = ["Your Name <your.email@example.com>"]
+version = "0.2.0"
+authors = ["VMASPAD", "nyan7natsu"]
 description = "Tauri plugin for Google AdMob - Support for banner, interstitial, rewarded, rewarded interstitial, and app open ads"
 edition = "2021"
 rust-version = "1.77.2"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
-repository = "https://github.com/vmaspad/tauri-plugin-google-admob"
+repository = "https://github.com/nyan7natsu/tauri-plugin-admob"
 documentation = "https://docs.rs/tauri-plugin-google-admob"
-homepage = "https://github.com/vmaspad/tauri-plugin-google-admob"
+homepage = "https://github.com/nyan7natsu/tauri-plugin-admob"
 keywords = ["tauri", "plugin", "admob", "ads", "mobile"]
 exclude = ["/examples", "/dist-js", "/guest-js", "/node_modules"] 
 links = "tauri-plugin-google-admob"

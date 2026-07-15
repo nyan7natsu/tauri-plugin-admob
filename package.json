@@ -1,7 +1,7 @@
 {
   "name": "tauri-plugin-google-admob-api",
-  "version": "0.1.1",
-  "author": "You",
+  "version": "0.2.0",
+  "author": "nyan7natsu",
   "description": "",
   "type": "module",
   "types": "./dist-js/index.d.ts",
